@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>緊急地震速報モニター</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0c0f;
+    --surface: #10141a;
+    --border: #1e2a38;
+    --accent-warn: #ff6b35;
+    --accent-alert: #ff2244;
+    --accent-ok: #00d4a0;
+    --accent-info: #4a9eff;
+    --text: #c8d8e8;
+    --text-dim: #5a6a7a;
+    --text-bright: #eef4fa;
+    --glow-warn: rgba(255,107,53,0.3);
+    --glow-alert: rgba(255,34,68,0.4);
+    --glow-ok: rgba(0,212,160,0.25);
+    --glow-info: rgba(74,158,255,0.2);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Zen Kaku Gothic New', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* グリッドノイズ背景 */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(74,158,255,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(74,158,255,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .container {
+    position: relative;
+    z-index: 1;
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 24px 16px;
+  }
+
+  /* ヘッダー */
+  header {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    margin-bottom: 32px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .site-title {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .site-title .label {
+    font-size: 11px;
+    letter-spacing: 0.25em;
+    color: var(--accent-info);
+    font-family: 'Share Tech Mono', monospace;
+    text-transform: uppercase;
+  }
+
+  .site-title h1 {
+    font-size: clamp(20px, 4vw, 28px);
+    font-weight: 900;
+    color: var(--text-bright);
+    letter-spacing: 0.05em;
+    line-height: 1.1;
+  }
+
+  .status-bar {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 6px;
+  }
+
+  .pulse-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--accent-ok);
+    box-shadow: 0 0 8px var(--glow-ok);
+    animation: pulse 2s ease-in-out infinite;
+    display: inline-block;
+    margin-right: 6px;
+  }
+  .pulse-dot.error { background: var(--accent-alert); box-shadow: 0 0 8px var(--glow-alert); animation: none; }
+  .pulse-dot.loading { background: var(--accent-info); box-shadow: 0 0 8px var(--glow-info); }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(0.8); }
+  }
+
+  .status-text {
+    font-size: 12px;
+    font-family: 'Share Tech Mono', monospace;
+    color: var(--text-dim);
+  }
+
+  .last-update {
+    font-size: 11px;
+    font-family: 'Share Tech Mono', monospace;
+    color: var(--text-dim);
+  }
+
+  /* EEW バナー（発令中のみ表示） */
+  #eew-banner {
+    display: none;
+    background: linear-gradient(135deg, #1a0508, #2d0a10);
+    border: 1px solid var(--accent-alert);
+    border-radius: 8px;
+    padding: 20px 24px;
+    margin-bottom: 24px;
+    box-shadow: 0 0 30px var(--glow-alert), inset 0 1px 0 rgba(255,34,68,0.2);
+    animation: eew-flash 0.8s ease-in-out infinite alternate;
+  }
+
+  @keyframes eew-flash {
+    from { box-shadow: 0 0 20px var(--glow-alert); }
+    to   { box-shadow: 0 0 50px rgba(255,34,68,0.7); }
+  }
+
+  #eew-banner.warning {
+    background: linear-gradient(135deg, #1a0d05, #2d1a0a);
+    border-color: var(--accent-warn);
+    box-shadow: 0 0 30px var(--glow-warn), inset 0 1px 0 rgba(255,107,53,0.2);
+    animation: warn-flash 1s ease-in-out infinite alternate;
+  }
+
+  @keyframes warn-flash {
+    from { box-shadow: 0 0 20px var(--glow-warn); }
+    to   { box-shadow: 0 0 50px rgba(255,107,53,0.6); }
+  }
+
+  .eew-type-badge {
+    display: inline-block;
+    font-size: 11px;
+    font-family: 'Share Tech Mono', monospace;
+    letter-spacing: 0.15em;
+    padding: 3px 10px;
+    border-radius: 3px;
+    background: var(--accent-alert);
+    color: #fff;
+    margin-bottom: 10px;
+    font-weight: 700;
+  }
+
+  .eew-type-badge.warning { background: var(--accent-warn); }
+
+  #eew-banner h2 {
+    font-size: clamp(22px, 5vw, 32px);
+    font-weight: 900;
+    color: #fff;
+    letter-spacing: 0.05em;
+    margin-bottom: 12px;
+  }
+
+  .eew-meta {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 12px;
+    margin-top: 16px;
+  }
+
+  .eew-meta-item label {
+    display: block;
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    color: var(--text-dim);
+    font-family: 'Share Tech Mono', monospace;
+    text-transform: uppercase;
+    margin-bottom: 3px;
+  }
+
+  .eew-meta-item .value {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text-bright);
+  }
+
+  /* セクションヘッダー */
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  .section-header h2 {
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.2em;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    font-family: 'Share Tech Mono', monospace;
+  }
+
+  .section-header .line {
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* カード一覧 */
+  #eew-list, #info-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 32px;
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 16px 20px;
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 12px 16px;
+    align-items: center;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .card::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 3px;
+  }
+
+  .card.alert::before  { background: var(--accent-alert); box-shadow: 0 0 8px var(--glow-alert); }
+  .card.warn::before   { background: var(--accent-warn);  box-shadow: 0 0 8px var(--glow-warn); }
+  .card.info::before   { background: var(--accent-info);  box-shadow: 0 0 8px var(--glow-info); }
+  .card.ok::before     { background: var(--accent-ok);    box-shadow: 0 0 8px var(--glow-ok); }
+
+  .card:hover {
+    border-color: #2e3f52;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+  }
+
+  .card-icon {
+    width: 36px; height: 36px;
+    border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+    flex-shrink: 0;
+  }
+
+  .card-icon.alert { background: rgba(255,34,68,0.15); }
+  .card-icon.warn  { background: rgba(255,107,53,0.15); }
+  .card-icon.info  { background: rgba(74,158,255,0.15); }
+  .card-icon.ok    { background: rgba(0,212,160,0.15); }
+
+  .card-body { min-width: 0; }
+
+  .card-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text-bright);
+    margin-bottom: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .card-sub {
+    font-size: 12px;
+    color: var(--text-dim);
+    font-family: 'Share Tech Mono', monospace;
+  }
+
+  .card-time {
+    font-size: 11px;
+    color: var(--text-dim);
+    font-family: 'Share Tech Mono', monospace;
+    white-space: nowrap;
+    text-align: right;
+    flex-shrink: 0;
+  }
+
+  /* 空状態 */
+  .empty-state {
+    padding: 32px;
+    text-align: center;
+    border: 1px dashed var(--border);
+    border-radius: 6px;
+    color: var(--text-dim);
+    font-size: 13px;
+    font-family: 'Share Tech Mono', monospace;
+    letter-spacing: 0.05em;
+  }
+
+  /* フッター */
+  footer {
+    border-top: 1px solid var(--border);
+    padding-top: 16px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 24px;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  footer p {
+    font-size: 11px;
+    color: var(--text-dim);
+    font-family: 'Share Tech Mono', monospace;
+  }
+
+  footer a { color: var(--accent-info); text-decoration: none; }
+  footer a:hover { text-decoration: underline; }
+
+  /* エラーバー */
+  #error-bar {
+    display: none;
+    background: rgba(255,34,68,0.1);
+    border: 1px solid rgba(255,34,68,0.3);
+    border-radius: 6px;
+    padding: 12px 16px;
+    margin-bottom: 20px;
+    font-size: 13px;
+    color: #ff8899;
+    font-family: 'Share Tech Mono', monospace;
+  }
+
+  /* 更新ボタン */
+  #refresh-btn {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    padding: 6px 14px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-family: 'Share Tech Mono', monospace;
+    cursor: pointer;
+    transition: all 0.2s;
+    letter-spacing: 0.1em;
+  }
+
+  #refresh-btn:hover {
+    border-color: var(--accent-info);
+    color: var(--accent-info);
+  }
+
+  #refresh-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  /* CORS注意書き */
+  .cors-note {
+    background: rgba(74,158,255,0.06);
+    border: 1px solid rgba(74,158,255,0.2);
+    border-radius: 6px;
+    padding: 14px 18px;
+    margin-bottom: 20px;
+    font-size: 12px;
+    color: var(--text-dim);
+    line-height: 1.7;
+  }
+
+  .cors-note strong { color: var(--accent-info); }
+
+  @media (max-width: 500px) {
+    .card {
+      grid-template-columns: auto 1fr;
+      grid-template-rows: auto auto;
+    }
+    .card-time {
+      grid-column: 2;
+      text-align: left;
+    }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <!-- ヘッダー -->
+  <header>
+    <div class="site-title">
+      <span class="label">JMA XML Monitor</span>
+      <h1>緊急地震速報モニター</h1>
+    </div>
+    <div class="status-bar">
+      <div>
+        <span class="pulse-dot" id="dot"></span>
+        <span class="status-text" id="status-text">接続中...</span>
+      </div>
+      <div class="last-update" id="last-update">--</div>
+      <button id="refresh-btn" onclick="fetchAll()">▶ 手動更新</button>
+    </div>
+  </header>
+
+  <!-- エラーバー -->
+  <div id="error-bar"></div>
+
+  <!-- CORS注意書き（初回のみ） -->
+  <div class="cors-note" id="cors-note">
+    ⚠️ <strong>CORSプロキシについて：</strong>
+    気象庁XMLはブラウザからの直接アクセスをCORSポリシーでブロックするため、
+    このページでは <code>corsproxy.io</code> を経由して取得しています。
+    プロキシの混雑時はデータ取得に失敗することがあります。その場合は手動更新をお試しください。
+  </div>
+
+  <!-- EEWアクティブバナー（地震速報発令中のみ） -->
+  <div id="eew-banner">
+    <span class="eew-type-badge" id="eew-badge">緊急地震速報（警報）</span>
+    <h2 id="eew-title">—</h2>
+    <div class="eew-meta" id="eew-meta"></div>
+  </div>
+
+  <!-- EEW一覧 -->
+  <div class="section-header">
+    <h2>緊急地震速報（予報・警報）</h2>
+    <div class="line"></div>
+    <span id="eew-count" style="font-size:12px;font-family:'Share Tech Mono',monospace;color:var(--text-dim)">0件</span>
+  </div>
+  <div id="eew-list">
+    <div class="empty-state">現在、緊急地震速報の発表はありません</div>
+  </div>
+
+  <!-- 地震情報一覧 -->
+  <div class="section-header">
+    <h2>最近の地震情報</h2>
+    <div class="line"></div>
+    <span id="info-count" style="font-size:12px;font-family:'Share Tech Mono',monospace;color:var(--text-dim)">0件</span>
+  </div>
+  <div id="info-list">
+    <div class="empty-state">読み込み中...</div>
+  </div>
+
+  <!-- フッター -->
+  <footer>
+    <p>データ出典：<a href="https://xml.kishou.go.jp/" target="_blank">気象庁防災情報XML</a>（高頻度フィード）</p>
+    <p>自動更新：60秒ごと｜電文種別：VXSE44（予報）/ VXSE45（警報）</p>
+  </footer>
+</div>
+
+<script>
+// ============================================================
+// 設定
+// ============================================================
+const PROXY   = 'https://corsproxy.io/?url=';
+const FEED    = 'https://www.data.jma.go.jp/developer/xml/feed/eqvol.xml';
+const NS_ATOM = 'http://www.w3.org/2005/Atom';
+
+// EEW電文コード
+const EEW_CODES = {
+  '緊急地震速報（予報）' : { cls: 'warn',  icon: '⚡', badge: 'warning' },
+  '緊急地震速報（警報）' : { cls: 'alert', icon: '🚨', badge: 'alert'   },
+};
+
+const QUAKE_KEYWORDS = [
+  '震度速報', '震源', '地震情報'
+];
+
+let seenIds = new Set();
+let lastEEW = null;
+
+// ============================================================
+// メイン取得
+// ============================================================
+async function fetchAll() {
+  const btn = document.getElementById('refresh-btn');
+  btn.disabled = true;
+
+  setStatus('loading', '取得中...');
+  hideError();
+
+  try {
+    const xml = await fetchXML(PROXY + encodeURIComponent(FEED));
+    processAtomFeed(xml);
+    setStatus('ok', '正常');
+    document.getElementById('last-update').textContent =
+      '最終更新: ' + new Date().toLocaleTimeString('ja-JP');
+    document.getElementById('cors-note').style.display = 'none';
+  } catch(e) {
+    setStatus('error', 'エラー');
+    showError('データ取得失敗: ' + e.message + '｜CORSプロキシが混雑している可能性があります。しばらく待って手動更新してください。');
+    console.error(e);
+  }
+
+  btn.disabled = false;
+}
+
+// ============================================================
+// XML フェッチ
+// ============================================================
+async function fetchXML(url) {
+  const res = await fetch(url, { cache: 'no-cache' });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const txt = await res.text();
+  return new DOMParser().parseFromString(txt, 'text/xml');
+}
+
+// ============================================================
+// Atomフィード処理
+// ============================================================
+function processAtomFeed(doc) {
+  const entries = [...doc.getElementsByTagNameNS(NS_ATOM, 'entry')];
+  const eews   = [];
+  const quakes = [];
+
+  for (const entry of entries) {
+    const title   = getText(entry, 'title');
+    const updated = getText(entry, 'updated');
+    const link    = entry.getElementsByTagNameNS(NS_ATOM, 'link')[0]?.getAttribute('href') || '';
+    const id      = getText(entry, 'id');
+
+    const isEEW   = Object.keys(EEW_CODES).some(k => title.includes(k));
+    const isQuake = !isEEW && QUAKE_KEYWORDS.some(k => title.includes(k));
+
+    if (isEEW)   eews.push({ title, updated, link, id });
+    if (isQuake) quakes.push({ title, updated, link, id });
+  }
+
+  renderEEW(eews);
+  renderQuakes(quakes.slice(0, 10));
+}
+
+function getText(el, tag) {
+  return el.getElementsByTagNameNS(NS_ATOM, tag)[0]?.textContent?.trim() || '';
+}
+
+// ============================================================
+// EEW 描画
+// ============================================================
+function renderEEW(items) {
+  const list = document.getElementById('eew-list');
+  const banner = document.getElementById('eew-banner');
+  document.getElementById('eew-count').textContent = items.length + '件';
+
+  if (items.length === 0) {
+    list.innerHTML = '<div class="empty-state">現在、緊急地震速報の発表はありません</div>';
+    banner.style.display = 'none';
+    return;
+  }
+
+  // バナー（最新1件）
+  const top = items[0];
+  const topType = Object.keys(EEW_CODES).find(k => top.title.includes(k));
+  const topDef  = EEW_CODES[topType] || { cls:'warn', icon:'⚡', badge:'warning' };
+
+  banner.style.display = 'block';
+  banner.className = topDef.badge === 'alert' ? '' : 'warning';
+  document.getElementById('eew-badge').textContent = topType;
+  document.getElementById('eew-badge').className   = 'eew-type-badge ' + (topDef.badge === 'alert' ? '' : 'warning');
+  document.getElementById('eew-title').textContent = top.title;
+
+  // カード一覧
+  list.innerHTML = items.map(item => {
+    const type = Object.keys(EEW_CODES).find(k => item.title.includes(k));
+    const def  = EEW_CODES[type] || { cls:'warn', icon:'⚡' };
+    return `
+      <div class="card ${def.cls}">
+        <div class="card-icon ${def.cls}">${def.icon}</div>
+        <div class="card-body">
+          <div class="card-title">${esc(item.title)}</div>
+          <div class="card-sub">${esc(item.link)}</div>
+        </div>
+        <div class="card-time">${fmtTime(item.updated)}</div>
+      </div>`;
+  }).join('');
+
+  // 新規EEW通知
+  const newIds = items.map(i => i.id).filter(id => !seenIds.has(id));
+  if (newIds.length > 0 && seenIds.size > 0) {
+    playBeep(topDef.cls === 'alert');
+  }
+  items.forEach(i => seenIds.add(i.id));
+}
+
+// ============================================================
+// 地震情報 描画
+// ============================================================
+function renderQuakes(items) {
+  const list = document.getElementById('info-list');
+  document.getElementById('info-count').textContent = items.length + '件';
+
+  if (items.length === 0) {
+    list.innerHTML = '<div class="empty-state">地震情報なし</div>';
+    return;
+  }
+
+  list.innerHTML = items.map(item => {
+    const isShindo = item.title.includes('震度速報');
+    const cls  = isShindo ? 'warn' : 'info';
+    const icon = isShindo ? '📊' : '🌍';
+    return `
+      <div class="card ${cls}">
+        <div class="card-icon ${cls}">${icon}</div>
+        <div class="card-body">
+          <div class="card-title">${esc(item.title)}</div>
+          <div class="card-sub">気象庁 XML 電文</div>
+        </div>
+        <div class="card-time">${fmtTime(item.updated)}</div>
+      </div>`;
+  }).join('');
+}
+
+// ============================================================
+// ユーティリティ
+// ============================================================
+function fmtTime(iso) {
+  if (!iso) return '--';
+  try {
+    const d = new Date(iso);
+    return d.toLocaleString('ja-JP', {
+      month:'2-digit', day:'2-digit',
+      hour:'2-digit', minute:'2-digit', second:'2-digit'
+    });
+  } catch { return iso; }
+}
+
+function esc(str) {
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function setStatus(state, text) {
+  const dot = document.getElementById('dot');
+  dot.className = 'pulse-dot ' + (state === 'ok' ? '' : state);
+  document.getElementById('status-text').textContent = text;
+}
+
+function showError(msg) {
+  const bar = document.getElementById('error-bar');
+  bar.textContent = '⚠ ' + msg;
+  bar.style.display = 'block';
+}
+
+function hideError() {
+  document.getElementById('error-bar').style.display = 'none';
+}
+
+// 警報音（Web Audio API）
+function playBeep(isAlert) {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const freqs = isAlert ? [880, 660, 880] : [660, 550];
+    let t = ctx.currentTime;
+    freqs.forEach(f => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.frequency.value = f;
+      gain.gain.setValueAtTime(0.3, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.3);
+      osc.start(t); osc.stop(t + 0.3);
+      t += 0.35;
+    });
+  } catch(e) { /* AudioContext不可環境では無音 */ }
+}
+
+// ============================================================
+// 起動
+// ============================================================
+fetchAll();
+setInterval(fetchAll, 60_000); // 60秒ごとに自動更新
+</script>
+</body>
+</html>
