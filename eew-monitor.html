@@ -23,9 +23,7 @@
     --glow-ok: rgba(0,212,160,0.25);
     --glow-info: rgba(74,158,255,0.2);
   }
-
   * { box-sizing: border-box; margin: 0; padding: 0; }
-
   body {
     background: var(--bg);
     color: var(--text);
@@ -33,8 +31,6 @@
     min-height: 100vh;
     overflow-x: hidden;
   }
-
-  /* グリッドノイズ背景 */
   body::before {
     content: '';
     position: fixed;
@@ -46,636 +42,484 @@
     pointer-events: none;
     z-index: 0;
   }
+  .container { position: relative; z-index: 1; max-width: 900px; margin: 0 auto; padding: 24px 16px; }
 
-  .container {
-    position: relative;
-    z-index: 1;
-    max-width: 900px;
-    margin: 0 auto;
-    padding: 24px 16px;
-  }
-
-  /* ヘッダー */
   header {
-    display: flex;
-    align-items: flex-end;
-    justify-content: space-between;
-    margin-bottom: 32px;
-    padding-bottom: 16px;
-    border-bottom: 1px solid var(--border);
+    display: flex; align-items: flex-end; justify-content: space-between;
+    margin-bottom: 28px; padding-bottom: 16px; border-bottom: 1px solid var(--border);
+    flex-wrap: wrap; gap: 12px;
   }
-
-  .site-title {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-  }
-
-  .site-title .label {
-    font-size: 11px;
-    letter-spacing: 0.25em;
-    color: var(--accent-info);
-    font-family: 'Share Tech Mono', monospace;
-    text-transform: uppercase;
-  }
-
-  .site-title h1 {
-    font-size: clamp(20px, 4vw, 28px);
-    font-weight: 900;
-    color: var(--text-bright);
-    letter-spacing: 0.05em;
-    line-height: 1.1;
-  }
-
-  .status-bar {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    gap: 6px;
-  }
-
+  .site-title .label { font-size: 11px; letter-spacing: 0.25em; color: var(--accent-info); font-family: 'Share Tech Mono', monospace; text-transform: uppercase; }
+  .site-title h1 { font-size: clamp(20px, 4vw, 28px); font-weight: 900; color: var(--text-bright); letter-spacing: 0.05em; line-height: 1.1; margin-top: 4px; }
+  .status-bar { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+  .timer-row { display: flex; align-items: center; gap: 10px; }
   .pulse-dot {
-    width: 8px; height: 8px;
-    border-radius: 50%;
-    background: var(--accent-ok);
-    box-shadow: 0 0 8px var(--glow-ok);
-    animation: pulse 2s ease-in-out infinite;
-    display: inline-block;
-    margin-right: 6px;
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--accent-ok); box-shadow: 0 0 8px var(--glow-ok);
+    animation: pulse 2s ease-in-out infinite; display: inline-block;
   }
   .pulse-dot.error { background: var(--accent-alert); box-shadow: 0 0 8px var(--glow-alert); animation: none; }
-  .pulse-dot.loading { background: var(--accent-info); box-shadow: 0 0 8px var(--glow-info); }
+  .pulse-dot.loading { background: var(--accent-warn); box-shadow: 0 0 8px var(--glow-warn); }
+  @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.5;transform:scale(.8)} }
+  .status-text { font-size: 12px; font-family: 'Share Tech Mono', monospace; color: var(--text-dim); }
+  .last-update { font-size: 11px; font-family: 'Share Tech Mono', monospace; color: var(--text-dim); }
 
-  @keyframes pulse {
-    0%, 100% { opacity: 1; transform: scale(1); }
-    50% { opacity: 0.5; transform: scale(0.8); }
-  }
+  .countdown-label { font-size: 10px; font-family: 'Share Tech Mono', monospace; color: var(--text-dim); margin-bottom: 4px; text-align: right; }
+  .countdown-bar-bg { width: 180px; height: 3px; background: var(--border); border-radius: 2px; overflow: hidden; margin-left: auto; }
+  .countdown-bar { height: 100%; background: var(--accent-ok); border-radius: 2px; transition: width 1s linear; }
 
-  .status-text {
-    font-size: 12px;
-    font-family: 'Share Tech Mono', monospace;
-    color: var(--text-dim);
-  }
-
-  .last-update {
-    font-size: 11px;
-    font-family: 'Share Tech Mono', monospace;
-    color: var(--text-dim);
-  }
-
-  /* EEW バナー（発令中のみ表示） */
   #eew-banner {
-    display: none;
+    display: none; border-radius: 8px; padding: 20px 24px; margin-bottom: 24px;
     background: linear-gradient(135deg, #1a0508, #2d0a10);
     border: 1px solid var(--accent-alert);
-    border-radius: 8px;
-    padding: 20px 24px;
-    margin-bottom: 24px;
-    box-shadow: 0 0 30px var(--glow-alert), inset 0 1px 0 rgba(255,34,68,0.2);
+    box-shadow: 0 0 30px var(--glow-alert);
     animation: eew-flash 0.8s ease-in-out infinite alternate;
   }
-
-  @keyframes eew-flash {
-    from { box-shadow: 0 0 20px var(--glow-alert); }
-    to   { box-shadow: 0 0 50px rgba(255,34,68,0.7); }
-  }
-
   #eew-banner.warning {
     background: linear-gradient(135deg, #1a0d05, #2d1a0a);
     border-color: var(--accent-warn);
-    box-shadow: 0 0 30px var(--glow-warn), inset 0 1px 0 rgba(255,107,53,0.2);
+    box-shadow: 0 0 30px var(--glow-warn);
     animation: warn-flash 1s ease-in-out infinite alternate;
   }
-
-  @keyframes warn-flash {
-    from { box-shadow: 0 0 20px var(--glow-warn); }
-    to   { box-shadow: 0 0 50px rgba(255,107,53,0.6); }
-  }
-
+  @keyframes eew-flash  { from{box-shadow:0 0 20px var(--glow-alert)} to{box-shadow:0 0 50px rgba(255,34,68,.7)} }
+  @keyframes warn-flash { from{box-shadow:0 0 20px var(--glow-warn)} to{box-shadow:0 0 50px rgba(255,107,53,.6)} }
   .eew-type-badge {
-    display: inline-block;
-    font-size: 11px;
-    font-family: 'Share Tech Mono', monospace;
-    letter-spacing: 0.15em;
-    padding: 3px 10px;
-    border-radius: 3px;
-    background: var(--accent-alert);
-    color: #fff;
-    margin-bottom: 10px;
-    font-weight: 700;
+    display: inline-block; font-size: 11px; font-family: 'Share Tech Mono', monospace;
+    letter-spacing: .15em; padding: 3px 10px; border-radius: 3px;
+    background: var(--accent-alert); color: #fff; margin-bottom: 10px; font-weight: 700;
   }
-
   .eew-type-badge.warning { background: var(--accent-warn); }
+  #eew-banner h2 { font-size: clamp(20px,5vw,30px); font-weight: 900; color: #fff; }
 
-  #eew-banner h2 {
-    font-size: clamp(22px, 5vw, 32px);
-    font-weight: 900;
-    color: #fff;
-    letter-spacing: 0.05em;
-    margin-bottom: 12px;
-  }
+  .section-header { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+  .section-header h2 { font-size: 12px; font-weight: 700; letter-spacing: .2em; color: var(--text-dim); text-transform: uppercase; font-family: 'Share Tech Mono', monospace; white-space: nowrap; }
+  .section-header .line { flex: 1; height: 1px; background: var(--border); }
+  .section-count { font-size: 12px; font-family: 'Share Tech Mono', monospace; color: var(--text-dim); white-space: nowrap; }
 
-  .eew-meta {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-    gap: 12px;
-    margin-top: 16px;
-  }
-
-  .eew-meta-item label {
-    display: block;
-    font-size: 10px;
-    letter-spacing: 0.15em;
-    color: var(--text-dim);
-    font-family: 'Share Tech Mono', monospace;
-    text-transform: uppercase;
-    margin-bottom: 3px;
-  }
-
-  .eew-meta-item .value {
-    font-size: 18px;
-    font-weight: 700;
-    color: var(--text-bright);
-  }
-
-  /* セクションヘッダー */
-  .section-header {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin-bottom: 16px;
-  }
-
-  .section-header h2 {
-    font-size: 13px;
-    font-weight: 700;
-    letter-spacing: 0.2em;
-    color: var(--text-dim);
-    text-transform: uppercase;
-    font-family: 'Share Tech Mono', monospace;
-  }
-
-  .section-header .line {
-    flex: 1;
-    height: 1px;
-    background: var(--border);
-  }
-
-  /* カード一覧 */
-  #eew-list, #info-list {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    margin-bottom: 32px;
-  }
-
+  #eew-list, #info-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 28px; }
   .card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    padding: 16px 20px;
-    display: grid;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 6px;
+    padding: 14px 18px; display: grid;
     grid-template-columns: auto 1fr auto;
-    gap: 12px 16px;
-    align-items: center;
-    transition: border-color 0.2s, box-shadow 0.2s;
-    position: relative;
-    overflow: hidden;
+    gap: 10px 14px; align-items: start;
+    transition: border-color .2s, box-shadow .2s;
+    position: relative; overflow: hidden;
+    animation: fadeIn .3s ease;
   }
+  @keyframes fadeIn { from{opacity:0;transform:translateY(4px)} to{opacity:1;transform:translateY(0)} }
+  .card::before { content:''; position:absolute; left:0;top:0;bottom:0; width:3px; }
+  .card.alert::before { background:var(--accent-alert); box-shadow:0 0 8px var(--glow-alert); }
+  .card.warn::before  { background:var(--accent-warn);  box-shadow:0 0 8px var(--glow-warn); }
+  .card.info::before  { background:var(--accent-info);  box-shadow:0 0 8px var(--glow-info); }
+  .card:hover { border-color:#2e3f52; box-shadow:0 4px 20px rgba(0,0,0,.4); }
 
-  .card::before {
-    content: '';
-    position: absolute;
-    left: 0; top: 0; bottom: 0;
-    width: 3px;
-  }
-
-  .card.alert::before  { background: var(--accent-alert); box-shadow: 0 0 8px var(--glow-alert); }
-  .card.warn::before   { background: var(--accent-warn);  box-shadow: 0 0 8px var(--glow-warn); }
-  .card.info::before   { background: var(--accent-info);  box-shadow: 0 0 8px var(--glow-info); }
-  .card.ok::before     { background: var(--accent-ok);    box-shadow: 0 0 8px var(--glow-ok); }
-
-  .card:hover {
-    border-color: #2e3f52;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.4);
-  }
-
-  .card-icon {
-    width: 36px; height: 36px;
-    border-radius: 6px;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 16px;
-    flex-shrink: 0;
-  }
-
-  .card-icon.alert { background: rgba(255,34,68,0.15); }
-  .card-icon.warn  { background: rgba(255,107,53,0.15); }
-  .card-icon.info  { background: rgba(74,158,255,0.15); }
-  .card-icon.ok    { background: rgba(0,212,160,0.15); }
+  .card-icon { width:34px;height:34px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;margin-top:2px; }
+  .card-icon.alert{background:rgba(255,34,68,.15)} .card-icon.warn{background:rgba(255,107,53,.15)} .card-icon.info{background:rgba(74,158,255,.15)}
 
   .card-body { min-width: 0; }
+  .card-title { font-size:14px; font-weight:700; color:var(--text-bright); margin-bottom:4px; }
+  .card-sub   { font-size:12px; color:var(--text-dim); font-family:'Share Tech Mono',monospace; }
 
-  .card-title {
-    font-size: 14px;
-    font-weight: 700;
-    color: var(--text-bright);
-    margin-bottom: 4px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
+  .quake-detail { display: flex; flex-wrap: wrap; gap: 6px 18px; margin-top: 7px; }
+  .quake-chip { display: flex; align-items: baseline; gap: 4px; }
+  .chip-label { font-size: 10px; color: var(--text-dim); font-family: 'Share Tech Mono', monospace; letter-spacing: .1em; }
+  .chip-val   { font-size: 14px; font-weight: 700; color: var(--text-bright); }
+  .chip-val.s1,.chip-val.s2 { color: #4a9eff; }
+  .chip-val.s3 { color: #00d4a0; }
+  .chip-val.s4 { color: #ffe566; }
+  .chip-val.s5l,.chip-val.s5u { color: #ff9933; }
+  .chip-val.s6l,.chip-val.s6u,.chip-val.s7 { color: #ff2244; }
 
-  .card-sub {
-    font-size: 12px;
-    color: var(--text-dim);
-    font-family: 'Share Tech Mono', monospace;
-  }
+  .card-time { font-size:11px; color:var(--text-dim); font-family:'Share Tech Mono',monospace; white-space:nowrap; text-align:right; flex-shrink:0; margin-top:2px; }
 
-  .card-time {
-    font-size: 11px;
-    color: var(--text-dim);
-    font-family: 'Share Tech Mono', monospace;
-    white-space: nowrap;
-    text-align: right;
-    flex-shrink: 0;
-  }
+  .empty-state { padding:28px; text-align:center; border:1px dashed var(--border); border-radius:6px; color:var(--text-dim); font-size:13px; font-family:'Share Tech Mono',monospace; }
 
-  /* 空状態 */
-  .empty-state {
-    padding: 32px;
-    text-align: center;
-    border: 1px dashed var(--border);
-    border-radius: 6px;
-    color: var(--text-dim);
-    font-size: 13px;
-    font-family: 'Share Tech Mono', monospace;
-    letter-spacing: 0.05em;
-  }
+  #error-bar { display:none; background:rgba(255,34,68,.08); border:1px solid rgba(255,34,68,.25); border-radius:6px; padding:10px 14px; margin-bottom:18px; font-size:12px; color:#ff8899; font-family:'Share Tech Mono',monospace; }
 
-  /* フッター */
-  footer {
-    border-top: 1px solid var(--border);
-    padding-top: 16px;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px 24px;
-    justify-content: space-between;
-    align-items: center;
-  }
-
-  footer p {
-    font-size: 11px;
-    color: var(--text-dim);
-    font-family: 'Share Tech Mono', monospace;
-  }
-
-  footer a { color: var(--accent-info); text-decoration: none; }
-  footer a:hover { text-decoration: underline; }
-
-  /* エラーバー */
-  #error-bar {
-    display: none;
-    background: rgba(255,34,68,0.1);
-    border: 1px solid rgba(255,34,68,0.3);
-    border-radius: 6px;
-    padding: 12px 16px;
-    margin-bottom: 20px;
-    font-size: 13px;
-    color: #ff8899;
-    font-family: 'Share Tech Mono', monospace;
-  }
-
-  /* 更新ボタン */
   #refresh-btn {
-    background: transparent;
-    border: 1px solid var(--border);
-    color: var(--text-dim);
-    padding: 6px 14px;
-    border-radius: 4px;
-    font-size: 12px;
-    font-family: 'Share Tech Mono', monospace;
-    cursor: pointer;
-    transition: all 0.2s;
-    letter-spacing: 0.1em;
+    background:transparent; border:1px solid var(--border); color:var(--text-dim);
+    padding:5px 12px; border-radius:4px; font-size:11px; font-family:'Share Tech Mono',monospace;
+    cursor:pointer; transition:all .2s; letter-spacing:.1em;
   }
+  #refresh-btn:hover { border-color:var(--accent-info); color:var(--accent-info); }
+  #refresh-btn:disabled { opacity:.35; cursor:not-allowed; }
 
-  #refresh-btn:hover {
-    border-color: var(--accent-info);
-    color: var(--accent-info);
-  }
+  .cors-note { background:rgba(74,158,255,.06); border:1px solid rgba(74,158,255,.18); border-radius:6px; padding:12px 16px; margin-bottom:18px; font-size:12px; color:var(--text-dim); line-height:1.7; }
+  .cors-note strong { color:var(--accent-info); }
+  .cors-note code { background:rgba(74,158,255,.1); padding:1px 5px; border-radius:3px; font-family:'Share Tech Mono',monospace; font-size:11px; }
 
-  #refresh-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  footer { border-top:1px solid var(--border); padding-top:14px; display:flex; flex-wrap:wrap; gap:6px 20px; justify-content:space-between; }
+  footer p { font-size:11px; color:var(--text-dim); font-family:'Share Tech Mono',monospace; }
+  footer a { color:var(--accent-info); text-decoration:none; }
 
-  /* CORS注意書き */
-  .cors-note {
-    background: rgba(74,158,255,0.06);
-    border: 1px solid rgba(74,158,255,0.2);
-    border-radius: 6px;
-    padding: 14px 18px;
-    margin-bottom: 20px;
-    font-size: 12px;
-    color: var(--text-dim);
-    line-height: 1.7;
-  }
+  .loading-spinner { display:inline-block; width:10px; height:10px; border:2px solid var(--border); border-top-color:var(--accent-info); border-radius:50%; animation:spin .7s linear infinite; margin-right:4px; vertical-align:middle; }
+  @keyframes spin { to{transform:rotate(360deg)} }
 
-  .cors-note strong { color: var(--accent-info); }
-
-  @media (max-width: 500px) {
-    .card {
-      grid-template-columns: auto 1fr;
-      grid-template-rows: auto auto;
-    }
-    .card-time {
-      grid-column: 2;
-      text-align: left;
-    }
+  @media(max-width:500px) {
+    .card { grid-template-columns: auto 1fr; }
+    .card-time { grid-column: 2; text-align: left; }
+    .countdown-bar-bg { width: 120px; }
   }
 </style>
 </head>
 <body>
 <div class="container">
 
-  <!-- ヘッダー -->
   <header>
     <div class="site-title">
       <span class="label">JMA XML Monitor</span>
       <h1>緊急地震速報モニター</h1>
     </div>
     <div class="status-bar">
-      <div>
+      <div class="timer-row">
         <span class="pulse-dot" id="dot"></span>
-        <span class="status-text" id="status-text">接続中...</span>
+        <span class="status-text" id="status-text">初期化中...</span>
+        <button id="refresh-btn" onclick="manualFetch()">更新</button>
       </div>
       <div class="last-update" id="last-update">--</div>
-      <button id="refresh-btn" onclick="fetchAll()">▶ 手動更新</button>
+      <div class="countdown-label" id="countdown-label">次回更新: --秒後</div>
+      <div class="countdown-bar-bg"><div class="countdown-bar" id="countdown-bar" style="width:100%"></div></div>
     </div>
   </header>
 
-  <!-- エラーバー -->
   <div id="error-bar"></div>
 
-  <!-- CORS注意書き（初回のみ） -->
   <div class="cors-note" id="cors-note">
     ⚠️ <strong>CORSプロキシについて：</strong>
     気象庁XMLはブラウザからの直接アクセスをCORSポリシーでブロックするため、
-    このページでは <code>corsproxy.io</code> を経由して取得しています。
-    プロキシの混雑時はデータ取得に失敗することがあります。その場合は手動更新をお試しください。
+    <code>corsproxy.io</code> を経由して取得しています。
+    プロキシが混雑している場合は取得に失敗することがあります。
   </div>
 
-  <!-- EEWアクティブバナー（地震速報発令中のみ） -->
   <div id="eew-banner">
     <span class="eew-type-badge" id="eew-badge">緊急地震速報（警報）</span>
     <h2 id="eew-title">—</h2>
-    <div class="eew-meta" id="eew-meta"></div>
   </div>
 
-  <!-- EEW一覧 -->
   <div class="section-header">
     <h2>緊急地震速報（予報・警報）</h2>
     <div class="line"></div>
-    <span id="eew-count" style="font-size:12px;font-family:'Share Tech Mono',monospace;color:var(--text-dim)">0件</span>
+    <span class="section-count" id="eew-count">0件</span>
   </div>
   <div id="eew-list">
     <div class="empty-state">現在、緊急地震速報の発表はありません</div>
   </div>
 
-  <!-- 地震情報一覧 -->
   <div class="section-header">
     <h2>最近の地震情報</h2>
     <div class="line"></div>
-    <span id="info-count" style="font-size:12px;font-family:'Share Tech Mono',monospace;color:var(--text-dim)">0件</span>
+    <span class="section-count" id="info-count">0件</span>
   </div>
   <div id="info-list">
     <div class="empty-state">読み込み中...</div>
   </div>
 
-  <!-- フッター -->
   <footer>
-    <p>データ出典：<a href="https://xml.kishou.go.jp/" target="_blank">気象庁防災情報XML</a>（高頻度フィード）</p>
-    <p>自動更新：60秒ごと｜電文種別：VXSE44（予報）/ VXSE45（警報）</p>
+    <p>出典：<a href="https://xml.kishou.go.jp/" target="_blank">気象庁防災情報XML</a>（高頻度フィード）</p>
+    <p>更新タイミング：毎分:20秒に同期（フィード更新タイミングに合わせた最適化済み）</p>
   </footer>
 </div>
 
 <script>
-// ============================================================
-// 設定
-// ============================================================
 const PROXY   = 'https://corsproxy.io/?url=';
 const FEED    = 'https://www.data.jma.go.jp/developer/xml/feed/eqvol.xml';
 const NS_ATOM = 'http://www.w3.org/2005/Atom';
+const UPDATE_SEC = 20; // 気象庁フィードが毎分:20秒頃に更新される
 
-// EEW電文コード
-const EEW_CODES = {
-  '緊急地震速報（予報）' : { cls: 'warn',  icon: '⚡', badge: 'warning' },
-  '緊急地震速報（警報）' : { cls: 'alert', icon: '🚨', badge: 'alert'   },
+const EEW_DEFS = {
+  '緊急地震速報（警報）': { cls:'alert', icon:'🚨', badge:'alert' },
+  '緊急地震速報（予報）': { cls:'warn',  icon:'⚡', badge:'warning' },
 };
 
-const QUAKE_KEYWORDS = [
-  '震度速報', '震源', '地震情報'
-];
+const QUAKE_DEFS = {
+  '震源・震度に関する情報'        : { icon:'🌍', label:'震源・震度情報' },
+  '震度速報'                      : { icon:'📊', label:'震度速報'       },
+  '震源に関する情報'              : { icon:'🌐', label:'震源情報'       },
+  '遠地地震に関する情報'          : { icon:'🌏', label:'遠地地震情報'   },
+  '地震の活動状況等に関する情報'  : { icon:'📈', label:'地震活動情報'   },
+};
 
 let seenIds = new Set();
-let lastEEW = null;
+let scheduleTimer = null;
+let nextFetchAt = null;
 
-// ============================================================
-// メイン取得
-// ============================================================
+// ---- タイミング制御 ----
+// 気象庁フィードは毎分:20秒頃に更新されるため、それに合わせてポーリング
+function scheduleNext() {
+  const now = new Date();
+  const sec = now.getSeconds();
+  const ms  = now.getMilliseconds();
+  let wait  = ((UPDATE_SEC - sec + 60) % 60) * 1000 - ms;
+  if (wait < 800) wait += 60_000; // 直近すぎたら次の分へ
+  nextFetchAt = Date.now() + wait;
+
+  clearTimeout(scheduleTimer);
+  scheduleTimer = setTimeout(async () => {
+    await fetchAll();
+    scheduleNext();
+  }, wait);
+
+  animateCountdown();
+}
+
+function animateCountdown() {
+  const bar   = document.getElementById('countdown-bar');
+  const label = document.getElementById('countdown-label');
+  const step  = () => {
+    if (!nextFetchAt) return;
+    const rem = Math.max(0, nextFetchAt - Date.now());
+    const pct = Math.min(100, (rem / 60000) * 100);
+    bar.style.width = pct + '%';
+    bar.style.background = pct > 30 ? 'var(--accent-ok)' : pct > 10 ? 'var(--accent-warn)' : 'var(--accent-alert)';
+    label.textContent = '次回更新: ' + Math.ceil(rem / 1000) + '秒後';
+    if (rem > 0) requestAnimationFrame(step);
+  };
+  requestAnimationFrame(step);
+}
+
+async function manualFetch() {
+  clearTimeout(scheduleTimer);
+  await fetchAll();
+  scheduleNext();
+}
+
+// ---- フェッチ ----
 async function fetchAll() {
-  const btn = document.getElementById('refresh-btn');
-  btn.disabled = true;
-
+  document.getElementById('refresh-btn').disabled = true;
   setStatus('loading', '取得中...');
   hideError();
-
   try {
     const xml = await fetchXML(PROXY + encodeURIComponent(FEED));
     processAtomFeed(xml);
     setStatus('ok', '正常');
-    document.getElementById('last-update').textContent =
-      '最終更新: ' + new Date().toLocaleTimeString('ja-JP');
+    document.getElementById('last-update').textContent = '取得: ' + new Date().toLocaleTimeString('ja-JP');
     document.getElementById('cors-note').style.display = 'none';
   } catch(e) {
     setStatus('error', 'エラー');
-    showError('データ取得失敗: ' + e.message + '｜CORSプロキシが混雑している可能性があります。しばらく待って手動更新してください。');
-    console.error(e);
+    showError('取得失敗: ' + e.message + ' ｜ プロキシ混雑の可能性あり。しばらく待って手動更新を。');
   }
-
-  btn.disabled = false;
+  document.getElementById('refresh-btn').disabled = false;
 }
 
-// ============================================================
-// XML フェッチ
-// ============================================================
 async function fetchXML(url) {
   const res = await fetch(url, { cache: 'no-cache' });
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  if (!res.ok) throw new Error('HTTP ' + res.status);
   const txt = await res.text();
-  return new DOMParser().parseFromString(txt, 'text/xml');
+  const doc = new DOMParser().parseFromString(txt, 'text/xml');
+  if (doc.querySelector('parsererror')) throw new Error('XMLパースエラー');
+  return doc;
 }
 
-// ============================================================
-// Atomフィード処理
-// ============================================================
+// ---- Atomフィード処理 ----
 function processAtomFeed(doc) {
   const entries = [...doc.getElementsByTagNameNS(NS_ATOM, 'entry')];
-  const eews   = [];
-  const quakes = [];
+  const eews = [], quakes = [];
 
-  for (const entry of entries) {
-    const title   = getText(entry, 'title');
-    const updated = getText(entry, 'updated');
-    const link    = entry.getElementsByTagNameNS(NS_ATOM, 'link')[0]?.getAttribute('href') || '';
-    const id      = getText(entry, 'id');
+  for (const e of entries) {
+    const title   = gText(e, 'title');
+    const updated = gText(e, 'updated');
+    const link    = e.getElementsByTagNameNS(NS_ATOM, 'link')[0]?.getAttribute('href') || '';
+    const id      = gText(e, 'id');
 
-    const isEEW   = Object.keys(EEW_CODES).some(k => title.includes(k));
-    const isQuake = !isEEW && QUAKE_KEYWORDS.some(k => title.includes(k));
+    const eewKey   = Object.keys(EEW_DEFS).find(k => title.includes(k));
+    const quakeKey = !eewKey && Object.keys(QUAKE_DEFS).find(k => title.includes(k));
 
-    if (isEEW)   eews.push({ title, updated, link, id });
-    if (isQuake) quakes.push({ title, updated, link, id });
+    if (eewKey)   eews.push({ title, updated, link, id, def: EEW_DEFS[eewKey] });
+    if (quakeKey) quakes.push({ title, updated, link, id, def: QUAKE_DEFS[quakeKey] });
   }
 
   renderEEW(eews);
   renderQuakes(quakes.slice(0, 10));
 }
 
-function getText(el, tag) {
+function gText(el, tag) {
   return el.getElementsByTagNameNS(NS_ATOM, tag)[0]?.textContent?.trim() || '';
 }
 
-// ============================================================
-// EEW 描画
-// ============================================================
+// ---- EEW描画 ----
 function renderEEW(items) {
   const list = document.getElementById('eew-list');
   const banner = document.getElementById('eew-banner');
   document.getElementById('eew-count').textContent = items.length + '件';
 
-  if (items.length === 0) {
+  if (!items.length) {
     list.innerHTML = '<div class="empty-state">現在、緊急地震速報の発表はありません</div>';
     banner.style.display = 'none';
     return;
   }
 
-  // バナー（最新1件）
   const top = items[0];
-  const topType = Object.keys(EEW_CODES).find(k => top.title.includes(k));
-  const topDef  = EEW_CODES[topType] || { cls:'warn', icon:'⚡', badge:'warning' };
-
   banner.style.display = 'block';
-  banner.className = topDef.badge === 'alert' ? '' : 'warning';
-  document.getElementById('eew-badge').textContent = topType;
-  document.getElementById('eew-badge').className   = 'eew-type-badge ' + (topDef.badge === 'alert' ? '' : 'warning');
+  banner.className = top.def.badge === 'alert' ? '' : 'warning';
+  document.getElementById('eew-badge').textContent = Object.keys(EEW_DEFS).find(k => top.title.includes(k)) || '';
+  document.getElementById('eew-badge').className   = 'eew-type-badge' + (top.def.badge === 'alert' ? '' : ' warning');
   document.getElementById('eew-title').textContent = top.title;
 
-  // カード一覧
-  list.innerHTML = items.map(item => {
-    const type = Object.keys(EEW_CODES).find(k => item.title.includes(k));
-    const def  = EEW_CODES[type] || { cls:'warn', icon:'⚡' };
-    return `
-      <div class="card ${def.cls}">
-        <div class="card-icon ${def.cls}">${def.icon}</div>
-        <div class="card-body">
-          <div class="card-title">${esc(item.title)}</div>
-          <div class="card-sub">${esc(item.link)}</div>
-        </div>
-        <div class="card-time">${fmtTime(item.updated)}</div>
-      </div>`;
-  }).join('');
+  list.innerHTML = items.map(item => `
+    <div class="card ${item.def.cls}">
+      <div class="card-icon ${item.def.cls}">${item.def.icon}</div>
+      <div class="card-body">
+        <div class="card-title">${esc(item.title)}</div>
+        <div class="card-sub">${esc(item.link)}</div>
+      </div>
+      <div class="card-time">${fmtTime(item.updated)}</div>
+    </div>`).join('');
 
-  // 新規EEW通知
-  const newIds = items.map(i => i.id).filter(id => !seenIds.has(id));
-  if (newIds.length > 0 && seenIds.size > 0) {
-    playBeep(topDef.cls === 'alert');
-  }
+  const newItems = items.filter(i => !seenIds.has(i.id));
+  if (newItems.length && seenIds.size > 0) playBeep(top.def.cls === 'alert');
   items.forEach(i => seenIds.add(i.id));
 }
 
-// ============================================================
-// 地震情報 描画
-// ============================================================
+// ---- 地震情報描画 ----
 function renderQuakes(items) {
   const list = document.getElementById('info-list');
   document.getElementById('info-count').textContent = items.length + '件';
 
-  if (items.length === 0) {
+  if (!items.length) {
     list.innerHTML = '<div class="empty-state">地震情報なし</div>';
     return;
   }
 
-  list.innerHTML = items.map(item => {
-    const isShindo = item.title.includes('震度速報');
-    const cls  = isShindo ? 'warn' : 'info';
-    const icon = isShindo ? '📊' : '🌍';
-    return `
-      <div class="card ${cls}">
-        <div class="card-icon ${cls}">${icon}</div>
-        <div class="card-body">
-          <div class="card-title">${esc(item.title)}</div>
-          <div class="card-sub">気象庁 XML 電文</div>
+  // まずラベルだけ即時描画
+  list.innerHTML = items.map((item, i) => `
+    <div class="card info" id="qc${i}">
+      <div class="card-icon info">${item.def.icon}</div>
+      <div class="card-body">
+        <div class="card-title" id="qt${i}">${item.def.label}</div>
+        <div id="qs${i}" class="card-sub">
+          <span class="loading-spinner"></span>詳細取得中...
         </div>
-        <div class="card-time">${fmtTime(item.updated)}</div>
-      </div>`;
-  }).join('');
+      </div>
+      <div class="card-time">${fmtTime(item.updated)}</div>
+    </div>`).join('');
+
+  // 詳細XMLを並列取得（最大5件）
+  items.slice(0, 5).forEach((item, i) => loadQuakeDetail(item, i));
 }
 
-// ============================================================
-// ユーティリティ
-// ============================================================
+async function loadQuakeDetail(item, i) {
+  const titleEl = document.getElementById('qt' + i);
+  const subEl   = document.getElementById('qs' + i);
+  const cardEl  = document.getElementById('qc' + i);
+  if (!subEl) return;
+
+  try {
+    const xml = await fetchXML(PROXY + encodeURIComponent(item.link));
+    const d   = parseQuakeXML(xml);
+
+    // 震央地名をタイトルに
+    if (d.area) titleEl.textContent = d.area;
+
+    // 詳細チップ
+    let chips = '';
+    if (d.maxShindo) chips += mkChip('最大震度', `<span class="chip-val ${shindoCls(d.maxShindo)}">${d.maxShindo}</span>`);
+    if (d.mag)       chips += mkChip('M', `<span class="chip-val">${d.mag}</span>`);
+    if (d.depth)     chips += mkChip('深さ', `<span class="chip-val">${d.depth}</span>`);
+    if (d.time)      chips += mkChip('発生時刻', `<span class="chip-val" style="font-size:12px">${d.time}</span>`);
+
+    subEl.innerHTML = chips ? `<div class="quake-detail">${chips}</div>` : '詳細情報なし';
+
+    // 震度に応じてカード色変更
+    if (d.maxShindoNum >= 5) cardEl.className = 'card warn';
+    if (d.maxShindoNum >= 6) cardEl.className = 'card alert';
+  } catch {
+    subEl.textContent = '詳細取得失敗';
+  }
+}
+
+function mkChip(label, valHtml) {
+  return `<div class="quake-chip"><span class="chip-label">${label}</span>${valHtml}</div>`;
+}
+
+// ---- 地震XML解析 ----
+function parseQuakeXML(doc) {
+  const r = {};
+
+  // 震央地名（複数パターンを試みる）
+  const areaSelectors = ['Hypocenter Area Name', 'HypocenterArea Name', 'Name'];
+  for (const sel of areaSelectors) {
+    const el = doc.querySelector(sel);
+    if (el && el.textContent.trim()) { r.area = el.textContent.trim(); break; }
+  }
+
+  // 最大震度
+  const shindoEl = doc.querySelector('MaxInt') || doc.querySelector('Intensity MaxInt');
+  if (shindoEl) {
+    const raw = shindoEl.textContent.trim();
+    r.maxShindo    = fmtShindo(raw);
+    r.maxShindoNum = shindoNum(raw);
+  }
+
+  // マグニチュード（名前空間コロンはCSSセレクタで使えないためgetElementsByTagNameNSを使う）
+  const mags = doc.getElementsByTagName('jmx_eb:Magnitude');
+  const mag  = mags.length ? mags[0] : doc.querySelector('Magnitude');
+  if (mag) r.mag = parseFloat(mag.textContent).toFixed(1);
+
+  // 深さ
+  const depths = doc.getElementsByTagName('jmx_eb:Depth');
+  const depth  = depths.length ? depths[0] : doc.querySelector('Depth');
+  if (depth) {
+    const v = depth.textContent.trim();
+    if (v && v !== 'NaN' && v !== '0') r.depth = v + 'km';
+    else if (v === '0') r.depth = 'ごく浅い';
+  }
+
+  // 発生時刻
+  const ot = doc.querySelector('OriginTime') || doc.getElementsByTagName('jmx_eb:OriginTime')[0];
+  if (ot) r.time = fmtTime(ot.textContent.trim());
+
+  return r;
+}
+
+function fmtShindo(raw) {
+  return {'1':'1','2':'2','3':'3','4':'4','5-':'5弱','5+':'5強','6-':'6弱','6+':'6強','7':'7'}[raw] || raw;
+}
+function shindoNum(raw) {
+  return {'1':1,'2':2,'3':3,'4':4,'5-':5,'5+':5.5,'6-':6,'6+':6.5,'7':7}[raw] || 0;
+}
+function shindoCls(shindo) {
+  return {'1':'s1','2':'s2','3':'s3','4':'s4','5弱':'s5l','5強':'s5u','6弱':'s6l','6強':'s6u','7':'s7'}[shindo] || '';
+}
+
+// ---- ユーティリティ ----
 function fmtTime(iso) {
   if (!iso) return '--';
   try {
     const d = new Date(iso);
-    return d.toLocaleString('ja-JP', {
-      month:'2-digit', day:'2-digit',
-      hour:'2-digit', minute:'2-digit', second:'2-digit'
-    });
+    if (isNaN(d)) return iso;
+    return d.toLocaleString('ja-JP', { month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit', second:'2-digit' });
   } catch { return iso; }
 }
-
-function esc(str) {
-  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function setStatus(st, txt) {
+  document.getElementById('dot').className = 'pulse-dot' + (st === 'ok' ? '' : ' ' + st);
+  document.getElementById('status-text').textContent = txt;
 }
+function showError(msg) { const b = document.getElementById('error-bar'); b.textContent = '⚠ '+msg; b.style.display='block'; }
+function hideError() { document.getElementById('error-bar').style.display = 'none'; }
 
-function setStatus(state, text) {
-  const dot = document.getElementById('dot');
-  dot.className = 'pulse-dot ' + (state === 'ok' ? '' : state);
-  document.getElementById('status-text').textContent = text;
-}
-
-function showError(msg) {
-  const bar = document.getElementById('error-bar');
-  bar.textContent = '⚠ ' + msg;
-  bar.style.display = 'block';
-}
-
-function hideError() {
-  document.getElementById('error-bar').style.display = 'none';
-}
-
-// 警報音（Web Audio API）
 function playBeep(isAlert) {
   try {
     const ctx = new (window.AudioContext || window.webkitAudioContext)();
-    const freqs = isAlert ? [880, 660, 880] : [660, 550];
+    const freqs = isAlert ? [880,660,880] : [660,550];
     let t = ctx.currentTime;
     freqs.forEach(f => {
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.connect(gain); gain.connect(ctx.destination);
+      const osc = ctx.createOscillator(), g = ctx.createGain();
+      osc.connect(g); g.connect(ctx.destination);
       osc.frequency.value = f;
-      gain.gain.setValueAtTime(0.3, t);
-      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.3);
+      g.gain.setValueAtTime(0.3, t);
+      g.gain.exponentialRampToValueAtTime(0.001, t + 0.3);
       osc.start(t); osc.stop(t + 0.3);
       t += 0.35;
     });
-  } catch(e) { /* AudioContext不可環境では無音 */ }
+  } catch {}
 }
 
-// ============================================================
-// 起動
-// ============================================================
-fetchAll();
-setInterval(fetchAll, 60_000); // 60秒ごとに自動更新
+// ---- 起動 ----
+(async () => {
+  await fetchAll();
+  scheduleNext();
+})();
 </script>
 </body>
 </html>
