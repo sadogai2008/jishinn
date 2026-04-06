@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>緊急地震速報モニター</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:#0a0c0f; --surface:#10141a; --border:#1e2a38;
+    --warn:#ff6b35; --alert:#ff2244; --ok:#00d4a0; --info:#4a9eff;
+    --text:#c8d8e8; --dim:#5a6a7a; --bright:#eef4fa;
+    --gw:rgba(255,107,53,.3); --ga:rgba(255,34,68,.4);
+    --go:rgba(0,212,160,.25); --gi:rgba(74,158,255,.2);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--text);font-family:'Zen Kaku Gothic New',sans-serif;min-height:100vh;overflow-x:hidden}
+  body::before{content:'';position:fixed;inset:0;
+    background-image:linear-gradient(rgba(74,158,255,.03)1px,transparent 1px),linear-gradient(90deg,rgba(74,158,255,.03)1px,transparent 1px);
+    background-size:40px 40px;pointer-events:none;z-index:0}
+  .wrap{position:relative;z-index:1;max-width:900px;margin:0 auto;padding:24px 16px}
+
+  /* ヘッダー */
+  header{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:24px;padding-bottom:16px;border-bottom:1px solid var(--border);flex-wrap:wrap;gap:12px}
+  .ttl .lbl{font-size:11px;letter-spacing:.25em;color:var(--info);font-family:'Share Tech Mono',monospace;text-transform:uppercase}
+  .ttl h1{font-size:clamp(20px,4vw,28px);font-weight:900;color:var(--bright);letter-spacing:.05em;margin-top:4px}
+  .sbar{display:flex;flex-direction:column;align-items:flex-end;gap:5px}
+  .srow{display:flex;align-items:center;gap:8px}
+
+  /* ソースバッジ */
+  .src-badges{display:flex;gap:6px;margin-bottom:2px}
+  .badge{font-size:10px;font-family:'Share Tech Mono',monospace;letter-spacing:.1em;padding:2px 8px;border-radius:3px;border:1px solid}
+  .badge.ws{border-color:var(--ok);color:var(--ok)}
+  .badge.ws.off{border-color:var(--dim);color:var(--dim)}
+  .badge.xml{border-color:var(--info);color:var(--info)}
+
+  /* ドット */
+  .dot{width:8px;height:8px;border-radius:50%;background:var(--ok);box-shadow:0 0 8px var(--go);animation:pulse 2s ease-in-out infinite;display:inline-block}
+  .dot.err{background:var(--alert);box-shadow:0 0 8px var(--ga);animation:none}
+  .dot.loading{background:var(--warn);box-shadow:0 0 8px var(--gw)}
+  @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(.8)}}
+  .stxt{font-size:12px;font-family:'Share Tech Mono',monospace;color:var(--dim)}
+  .lupd{font-size:11px;font-family:'Share Tech Mono',monospace;color:var(--dim)}
+
+  /* カウントダウン */
+  .cdlbl{font-size:10px;font-family:'Share Tech Mono',monospace;color:var(--dim);text-align:right}
+  .cdbg{width:160px;height:3px;background:var(--border);border-radius:2px;overflow:hidden;margin-left:auto}
+  .cdbar{height:100%;background:var(--ok);border-radius:2px;transition:width 1s linear}
+
+  /* EEWバナー（P2P警報） */
+  #eew-banner{display:none;border-radius:8px;padding:20px 24px;margin-bottom:20px;
+    background:linear-gradient(135deg,#1a0508,#2d0a10);
+    border:1px solid var(--alert);animation:eflash .8s ease-in-out infinite alternate}
+  @keyframes eflash{from{box-shadow:0 0 20px var(--ga)}to{box-shadow:0 0 50px rgba(255,34,68,.7)}}
+  .ebadge{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-family:'Share Tech Mono',monospace;
+    letter-spacing:.15em;padding:3px 10px;border-radius:3px;background:var(--alert);color:#fff;margin-bottom:10px;font-weight:700}
+  .ebadge .ws-tag{font-size:9px;background:rgba(255,255,255,.2);padding:1px 5px;border-radius:2px}
+  #eew-banner h2{font-size:clamp(20px,5vw,30px);font-weight:900;color:#fff;margin-bottom:10px}
+  .eew-meta{display:flex;flex-wrap:wrap;gap:8px 20px;margin-top:10px}
+  .emitem label{display:block;font-size:9px;letter-spacing:.15em;color:rgba(255,255,255,.5);font-family:'Share Tech Mono',monospace;text-transform:uppercase;margin-bottom:2px}
+  .emitem .emval{font-size:16px;font-weight:700;color:#fff}
+
+  /* セクション */
+  .sec{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+  .sec h2{font-size:12px;font-weight:700;letter-spacing:.2em;color:var(--dim);text-transform:uppercase;font-family:'Share Tech Mono',monospace;white-space:nowrap}
+  .sec .line{flex:1;height:1px;background:var(--border)}
+  .sec .cnt{font-size:12px;font-family:'Share Tech Mono',monospace;color:var(--dim);white-space:nowrap}
+  .sec .src-tag{font-size:9px;font-family:'Share Tech Mono',monospace;padding:1px 6px;border-radius:2px;border:1px solid}
+  .sec .src-tag.ws{border-color:rgba(0,212,160,.4);color:var(--ok)}
+  .sec .src-tag.xml{border-color:rgba(74,158,255,.4);color:var(--info)}
+
+  /* カード */
+  #eew-list,#info-list{display:flex;flex-direction:column;gap:8px;margin-bottom:24px}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:14px 18px;
+    display:grid;grid-template-columns:auto 1fr auto;gap:10px 14px;align-items:start;
+    position:relative;overflow:hidden;transition:border-color .2s,box-shadow .2s;animation:fin .3s ease}
+  @keyframes fin{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+  .card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px}
+  .card.alert::before{background:var(--alert);box-shadow:0 0 8px var(--ga)}
+  .card.warn::before{background:var(--warn);box-shadow:0 0 8px var(--gw)}
+  .card.info::before{background:var(--info);box-shadow:0 0 8px var(--gi)}
+  .card:hover{border-color:#2e3f52;box-shadow:0 4px 20px rgba(0,0,0,.4)}
+  .cico{width:34px;height:34px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;margin-top:2px}
+  .cico.alert{background:rgba(255,34,68,.15)}.cico.warn{background:rgba(255,107,53,.15)}.cico.info{background:rgba(74,158,255,.15)}
+  .cbody{min-width:0}
+  .ctit{font-size:14px;font-weight:700;color:var(--bright);margin-bottom:3px}
+  .csub{font-size:12px;color:var(--dim);font-family:'Share Tech Mono',monospace}
+  .ctim{font-size:11px;color:var(--dim);font-family:'Share Tech Mono',monospace;white-space:nowrap;text-align:right;margin-top:2px}
+
+  /* 地震詳細チップ */
+  .qdet{display:flex;flex-wrap:wrap;gap:5px 16px;margin-top:7px}
+  .qchip{display:flex;align-items:baseline;gap:4px}
+  .qlbl{font-size:10px;color:var(--dim);font-family:'Share Tech Mono',monospace;letter-spacing:.1em}
+  .qval{font-size:14px;font-weight:700;color:var(--bright)}
+  .qval.s1,.qval.s2{color:#4a9eff}.qval.s3{color:#00d4a0}.qval.s4{color:#ffe566}
+  .qval.s5l,.qval.s5u{color:#ff9933}.qval.s6l,.qval.s6u,.qval.s7{color:#ff2244}
+
+  /* 空・エラー */
+  .empty{padding:24px;text-align:center;border:1px dashed var(--border);border-radius:6px;color:var(--dim);font-size:13px;font-family:'Share Tech Mono',monospace}
+  #errbar{display:none;background:rgba(255,34,68,.08);border:1px solid rgba(255,34,68,.25);border-radius:6px;padding:10px 14px;margin-bottom:16px;font-size:12px;color:#ff8899;font-family:'Share Tech Mono',monospace}
+
+  /* ボタン */
+  #refresh-btn{background:transparent;border:1px solid var(--border);color:var(--dim);padding:5px 12px;border-radius:4px;font-size:11px;font-family:'Share Tech Mono',monospace;cursor:pointer;transition:all .2s;letter-spacing:.1em}
+  #refresh-btn:hover{border-color:var(--info);color:var(--info)}
+  #refresh-btn:disabled{opacity:.35;cursor:not-allowed}
+
+  /* スピナー */
+  .spin{display:inline-block;width:10px;height:10px;border:2px solid var(--border);border-top-color:var(--info);border-radius:50%;animation:rot .7s linear infinite;margin-right:4px;vertical-align:middle}
+  @keyframes rot{to{transform:rotate(360deg)}}
+
+  /* フッター */
+  footer{border-top:1px solid var(--border);padding-top:14px;display:flex;flex-wrap:wrap;gap:6px 20px;justify-content:space-between}
+  footer p{font-size:11px;color:var(--dim);font-family:'Share Tech Mono',monospace}
+  footer a{color:var(--info);text-decoration:none}
+
+  @media(max-width:500px){.card{grid-template-columns:auto 1fr}.ctim{grid-column:2;text-align:left}.cdbg{width:120px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="ttl">
+      <span class="lbl">Hybrid EEW Monitor</span>
+      <h1>緊急地震速報モニター</h1>
+    </div>
+    <div class="sbar">
+      <div class="src-badges">
+        <span class="badge ws off" id="ws-badge">WS: 接続中...</span>
+        <span class="badge xml" id="xml-badge">XML: --</span>
+      </div>
+      <div class="srow">
+        <span class="dot" id="dot"></span>
+        <span class="stxt" id="stxt">初期化中...</span>
+        <button id="refresh-btn" onclick="manualFetch()">XML更新</button>
+      </div>
+      <div class="lupd" id="lupd">--</div>
+      <div class="cdlbl" id="cdlbl">次回XML更新: --秒後</div>
+      <div class="cdbg"><div class="cdbar" id="cdbar" style="width:100%"></div></div>
+    </div>
+  </header>
+
+  <div id="errbar"></div>
+
+  <!-- P2P WebSocket 警報バナー -->
+  <div id="eew-banner">
+    <div class="ebadge">🚨 緊急地震速報（警報）<span class="ws-tag">REALTIME</span></div>
+    <h2 id="eew-title">—</h2>
+    <div class="eew-meta" id="eew-meta"></div>
+  </div>
+
+  <!-- EEW（警報）一覧 P2P -->
+  <div class="sec">
+    <h2>緊急地震速報（警報）</h2>
+    <span class="src-tag ws">P2P WebSocket</span>
+    <div class="line"></div>
+    <span class="cnt" id="eew-cnt">0件</span>
+  </div>
+  <div id="eew-list">
+    <div class="empty">現在、緊急地震速報（警報）の発表はありません</div>
+  </div>
+
+  <!-- 地震情報一覧 気象庁XML -->
+  <div class="sec">
+    <h2>最近の地震情報</h2>
+    <span class="src-tag xml">気象庁XML</span>
+    <div class="line"></div>
+    <span class="cnt" id="info-cnt">0件</span>
+  </div>
+  <div id="info-list">
+    <div class="empty">読み込み中...</div>
+  </div>
+
+  <footer>
+    <p>警報：<a href="https://www.p2pquake.net/develop/" target="_blank">P2P地震情報 WebSocket</a>（リアルタイム）</p>
+    <p>地震情報：<a href="https://xml.kishou.go.jp/" target="_blank">気象庁防災情報XML</a>（毎分:20秒更新）</p>
+  </footer>
+</div>
+
+<script>
+// ============================================================
+// 設定
+// ============================================================
+// CORSプロキシ: キャッシュバスター(_t=タイムスタンプ)を付けてキャッシュを回避
+const PROXY    = url => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}&_t=${Date.now()}`;
+const FEED_URL = 'https://www.data.jma.go.jp/developer/xml/feed/eqvol.xml';
+const NS_ATOM  = 'http://www.w3.org/2005/Atom';
+const WS_URL   = 'wss://api.p2pquake.net/v2/ws';
+
+// P2Pコード
+const P2P_EEW   = 556; // 緊急地震速報（警報）
+const P2P_QUAKE = 551; // 地震情報
+const P2P_EEW_DETECT = 554; // EEW検出
+
+// 気象庁XMLの地震情報タイトル定義
+const QUAKE_DEFS = {
+  '震源・震度に関する情報'       : {icon:'🌍', label:'震源・震度情報'},
+  '震度速報'                     : {icon:'📊', label:'震度速報'},
+  '震源に関する情報'             : {icon:'🌐', label:'震源情報'},
+  '遠地地震に関する情報'         : {icon:'🌏', label:'遠地地震情報'},
+  '地震の活動状況等に関する情報' : {icon:'📈', label:'地震活動情報'},
+};
+
+let wsEEWList   = [];  // P2Pから受信したEEW履歴（直近5件）
+let seenWsIds   = new Set();
+let scheduleTimer = null;
+let nextFetchAt   = null;
+let ws            = null;
+
+// ============================================================
+// P2P WebSocket
+// ============================================================
+function connectWS() {
+  setBadge('ws', '接続中...', false);
+  ws = new WebSocket(WS_URL);
+
+  ws.onopen = () => {
+    setBadge('ws', 'LIVE', true);
+    setStatus('ok', 'WS接続中');
+  };
+
+  ws.onmessage = e => {
+    try {
+      const d = JSON.parse(e.data);
+      handleP2P(d);
+    } catch {}
+  };
+
+  ws.onerror = () => setBadge('ws', 'エラー', false);
+
+  ws.onclose = () => {
+    setBadge('ws', '切断', false);
+    // 5秒後に再接続
+    setTimeout(connectWS, 5000);
+  };
+}
+
+function handleP2P(d) {
+  // 緊急地震速報（警報）
+  if (d.code === P2P_EEW || d.code === P2P_EEW_DETECT) {
+    const id = d.id || d.time;
+    if (seenWsIds.has(id)) return;
+    seenWsIds.add(id);
+
+    const item = buildEEWItem(d);
+    wsEEWList.unshift(item);
+    if (wsEEWList.length > 10) wsEEWList.pop();
+
+    renderEEW();
+    playBeep(true);
+    flashTitle('🚨 緊急地震速報（警報）');
+  }
+
+  // 地震情報（P2Pからも参照：ただしXMLが主）
+  // ここでは警報のみP2Pを使用し、地震情報はXMLに任せる
+}
+
+function buildEEWItem(d) {
+  // code 556: 緊急地震速報（警報）
+  if (d.code === P2P_EEW) {
+    const eq = d.earthquake || {};
+    const name = eq.hypocenter?.name || '—';
+    const maxInt = fmtScale(eq.maxScale);
+    return {
+      id: d.id || d.time,
+      time: d.time || '',
+      title: name ? `${name}付近` : '緊急地震速報（警報）',
+      maxShindo: maxInt,
+      mag: eq.hypocenter?.magnitude >= 0 ? eq.hypocenter.magnitude : null,
+      depth: eq.hypocenter?.depth > 0 ? eq.hypocenter.depth + 'km' : null,
+    };
+  }
+  // code 554: EEW検出（簡易）
+  return {id: d.id || d.time, time: d.time || '', title: '緊急地震速報（警報）検出', maxShindo: null, mag: null, depth: null};
+}
+
+// ============================================================
+// 気象庁XML
+// ============================================================
+async function fetchXML_JMA() {
+  document.getElementById('refresh-btn').disabled = true;
+  setBadge('xml', '取得中...', null);
+  hideErr();
+
+  try {
+    const res  = await fetch(PROXY(FEED_URL), {cache:'no-store'});
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const txt  = await res.text();
+    const doc  = new DOMParser().parseFromString(txt, 'text/xml');
+    if (doc.querySelector('parsererror')) throw new Error('XMLパースエラー');
+    processAtomFeed(doc);
+    setBadge('xml', '正常', null);
+    document.getElementById('lupd').textContent = 'XML取得: ' + new Date().toLocaleTimeString('ja-JP');
+    setStatus('ok', 'WS接続中');
+  } catch(e) {
+    setBadge('xml', 'エラー', null);
+    showErr('XML取得失敗: ' + e.message);
+  }
+
+  document.getElementById('refresh-btn').disabled = false;
+}
+
+function processAtomFeed(doc) {
+  const entries = [...doc.getElementsByTagNameNS(NS_ATOM, 'entry')];
+  const quakes  = [];
+
+  for (const e of entries) {
+    const title   = gText(e,'title');
+    const updated = gText(e,'updated');
+    const link    = e.getElementsByTagNameNS(NS_ATOM,'link')[0]?.getAttribute('href') || '';
+    const id      = gText(e,'id');
+    const key     = Object.keys(QUAKE_DEFS).find(k => title.includes(k));
+    if (key) quakes.push({title, updated, link, id, def: QUAKE_DEFS[key]});
+  }
+
+  renderQuakes(quakes.slice(0, 10));
+}
+
+function gText(el, tag) {
+  return el.getElementsByTagNameNS(NS_ATOM, tag)[0]?.textContent?.trim() || '';
+}
+
+// ============================================================
+// 描画：EEW警報（P2P）
+// ============================================================
+function renderEEW() {
+  const list   = document.getElementById('eew-list');
+  const banner = document.getElementById('eew-banner');
+  document.getElementById('eew-cnt').textContent = wsEEWList.length + '件';
+
+  if (!wsEEWList.length) {
+    list.innerHTML = '<div class="empty">現在、緊急地震速報（警報）の発表はありません</div>';
+    banner.style.display = 'none';
+    return;
+  }
+
+  // バナー（最新）
+  const top = wsEEWList[0];
+  banner.style.display = 'block';
+  document.getElementById('eew-title').textContent = top.title;
+
+  let metaHtml = '';
+  if (top.maxShindo) metaHtml += emItem('最大震度', top.maxShindo);
+  if (top.mag)       metaHtml += emItem('M', top.mag);
+  if (top.depth)     metaHtml += emItem('深さ', top.depth);
+  if (top.time)      metaHtml += emItem('検出時刻', fmtTime(top.time));
+  document.getElementById('eew-meta').innerHTML = metaHtml;
+
+  // カード一覧
+  list.innerHTML = wsEEWList.map(item => `
+    <div class="card alert">
+      <div class="cico alert">🚨</div>
+      <div class="cbody">
+        <div class="ctit">${esc(item.title)}</div>
+        <div class="csub">P2P地震情報 WebSocket（リアルタイム）</div>
+        ${item.maxShindo || item.mag ? `<div class="qdet">
+          ${item.maxShindo ? mkChip('最大震度', `<span class="qval ${sindoCls(item.maxShindo)}">${item.maxShindo}</span>`) : ''}
+          ${item.mag       ? mkChip('M',        `<span class="qval">${item.mag}</span>`) : ''}
+          ${item.depth     ? mkChip('深さ',     `<span class="qval">${item.depth}</span>`) : ''}
+        </div>` : ''}
+      </div>
+      <div class="ctim">${fmtTime(item.time)}</div>
+    </div>`).join('');
+}
+
+function emItem(lbl, val) {
+  return `<div class="emitem"><label>${lbl}</label><div class="emval">${val}</div></div>`;
+}
+
+// ============================================================
+// 描画：地震情報（気象庁XML）
+// ============================================================
+function renderQuakes(items) {
+  const list = document.getElementById('info-list');
+  document.getElementById('info-cnt').textContent = items.length + '件';
+
+  if (!items.length) {
+    list.innerHTML = '<div class="empty">地震情報なし</div>';
+    return;
+  }
+
+  list.innerHTML = items.map((item, i) => `
+    <div class="card info" id="qc${i}">
+      <div class="cico info">${item.def.icon}</div>
+      <div class="cbody">
+        <div class="ctit" id="qt${i}">${item.def.label}</div>
+        <div id="qs${i}" class="csub"><span class="spin"></span>詳細取得中...</div>
+      </div>
+      <div class="ctim">${fmtTime(item.updated)}</div>
+    </div>`).join('');
+
+  // 最大5件の詳細を並列取得
+  items.slice(0, 5).forEach((item, i) => loadDetail(item, i));
+}
+
+async function loadDetail(item, i) {
+  const te = document.getElementById('qt' + i);
+  const se = document.getElementById('qs' + i);
+  const ce = document.getElementById('qc' + i);
+  if (!se) return;
+  try {
+    const res = await fetch(PROXY(item.link), {cache:'no-store'});
+    if (!res.ok) throw new Error();
+    const txt = await res.text();
+    const doc = new DOMParser().parseFromString(txt, 'text/xml');
+    if (doc.querySelector('parsererror')) throw new Error();
+    const d = parseQuakeXML(doc);
+    if (d.area) te.textContent = d.area;
+    let chips = '';
+    if (d.maxShindo) chips += mkChip('最大震度', `<span class="qval ${sindoCls(d.maxShindo)}">${d.maxShindo}</span>`);
+    if (d.mag)       chips += mkChip('M',        `<span class="qval">${d.mag}</span>`);
+    if (d.depth)     chips += mkChip('深さ',     `<span class="qval">${d.depth}</span>`);
+    if (d.time)      chips += mkChip('発生時刻', `<span class="qval" style="font-size:12px">${d.time}</span>`);
+    se.innerHTML = chips ? `<div class="qdet">${chips}</div>` : '詳細情報なし';
+    if (d.maxShindoNum >= 5) ce.className = 'card warn';
+    if (d.maxShindoNum >= 6) ce.className = 'card alert';
+  } catch {
+    se.textContent = '詳細取得失敗';
+  }
+}
+
+function parseQuakeXML(doc) {
+  const r = {};
+  for (const sel of ['Hypocenter Area Name','HypocenterArea Name','Name']) {
+    const el = doc.querySelector(sel);
+    if (el?.textContent?.trim()) { r.area = el.textContent.trim(); break; }
+  }
+  const si = doc.querySelector('MaxInt') || doc.querySelector('Intensity MaxInt');
+  if (si) { r.maxShindo = fmtShindo(si.textContent.trim()); r.maxShindoNum = shindoNum(si.textContent.trim()); }
+  const mg = doc.getElementsByTagName('jmx_eb:Magnitude')[0] || doc.querySelector('Magnitude');
+  if (mg) r.mag = parseFloat(mg.textContent).toFixed(1);
+  const dp = doc.getElementsByTagName('jmx_eb:Depth')[0] || doc.querySelector('Depth');
+  if (dp) { const v = dp.textContent.trim(); r.depth = v === '0' ? 'ごく浅い' : (v && v!=='NaN' ? v+'km' : null); }
+  const ot = doc.querySelector('OriginTime') || doc.getElementsByTagName('jmx_eb:OriginTime')[0];
+  if (ot) r.time = fmtTime(ot.textContent.trim());
+  return r;
+}
+
+// ============================================================
+// タイミング制御（毎分:20秒に同期）
+// ============================================================
+function scheduleNext() {
+  const now = new Date();
+  const sec = now.getSeconds(), ms = now.getMilliseconds();
+  let wait  = ((20 - sec + 60) % 60) * 1000 - ms;
+  if (wait < 800) wait += 60_000;
+  nextFetchAt = Date.now() + wait;
+  clearTimeout(scheduleTimer);
+  scheduleTimer = setTimeout(async () => { await fetchXML_JMA(); scheduleNext(); }, wait);
+  animateCD();
+}
+
+function animateCD() {
+  const bar = document.getElementById('cdbar'), lbl = document.getElementById('cdlbl');
+  const tick = () => {
+    const rem = Math.max(0, nextFetchAt - Date.now());
+    const pct = Math.min(100, rem / 60000 * 100);
+    bar.style.width = pct + '%';
+    bar.style.background = pct>30 ? 'var(--ok)' : pct>10 ? 'var(--warn)' : 'var(--alert)';
+    lbl.textContent = '次回XML更新: ' + Math.ceil(rem/1000) + '秒後';
+    if (rem > 0) requestAnimationFrame(tick);
+  };
+  requestAnimationFrame(tick);
+}
+
+async function manualFetch() {
+  clearTimeout(scheduleTimer);
+  await fetchXML_JMA();
+  scheduleNext();
+}
+
+// ============================================================
+// ユーティリティ
+// ============================================================
+function fmtScale(s) {
+  // P2PのmaxScale: 10→1, 20→2, ... 45→5弱, 50→5強, 55→6弱, 60→6強, 70→7
+  const m = {10:'1',20:'2',30:'3',40:'4',45:'5弱',50:'5強',55:'6弱',60:'6強',70:'7'};
+  return s > 0 ? (m[s] || String(s/10)) : null;
+}
+function fmtShindo(r) { return {'1':'1','2':'2','3':'3','4':'4','5-':'5弱','5+':'5強','6-':'6弱','6+':'6強','7':'7'}[r]||r; }
+function shindoNum(r) { return {'1':1,'2':2,'3':3,'4':4,'5-':5,'5+':5.5,'6-':6,'6+':6.5,'7':7}[r]||0; }
+function sindoCls(s)  { return {'1':'s1','2':'s2','3':'s3','4':'s4','5弱':'s5l','5強':'s5u','6弱':'s6l','6強':'s6u','7':'s7'}[s]||''; }
+function mkChip(l,v)  { return `<div class="qchip"><span class="qlbl">${l}</span>${v}</div>`; }
+function fmtTime(iso) {
+  if (!iso) return '--';
+  try { const d=new Date(iso); return isNaN(d)?iso:d.toLocaleString('ja-JP',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit'}); }
+  catch { return iso; }
+}
+function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function setBadge(type, txt, live) {
+  const el = document.getElementById(type+'-badge');
+  if (!el) return;
+  el.textContent = (type==='ws'?'WS: ':'XML: ') + txt;
+  if (type==='ws') el.className = 'badge ws' + (live ? '' : ' off');
+}
+function setStatus(st, txt) {
+  document.getElementById('dot').className = 'dot' + (st==='ok'?'':' '+st);
+  document.getElementById('stxt').textContent = txt;
+}
+function showErr(msg) { const b=document.getElementById('errbar'); b.textContent='⚠ '+msg; b.style.display='block'; }
+function hideErr()    { document.getElementById('errbar').style.display='none'; }
+
+let origTitle = document.title;
+let flashInterval = null;
+function flashTitle(msg) {
+  clearInterval(flashInterval);
+  let on = true;
+  flashInterval = setInterval(() => {
+    document.title = on ? msg : origTitle;
+    on = !on;
+  }, 800);
+  setTimeout(() => { clearInterval(flashInterval); document.title = origTitle; }, 30000);
+}
+
+function playBeep(isAlert) {
+  try {
+    const ctx = new (window.AudioContext||window.webkitAudioContext)();
+    const freqs = isAlert ? [880,660,880,660] : [660,550];
+    let t = ctx.currentTime;
+    freqs.forEach(f => {
+      const osc=ctx.createOscillator(), g=ctx.createGain();
+      osc.connect(g); g.connect(ctx.destination);
+      osc.frequency.value=f;
+      g.gain.setValueAtTime(0.4,t);
+      g.gain.exponentialRampToValueAtTime(0.001,t+0.3);
+      osc.start(t); osc.stop(t+0.3);
+      t+=0.35;
+    });
+  } catch {}
+}
+
+// ============================================================
+// 起動
+// ============================================================
+(async () => {
+  connectWS();           // P2P WebSocket 常時接続（警報リアルタイム）
+  await fetchXML_JMA();  // 気象庁XML 初回即時取得
+  scheduleNext();        // 毎分:20秒に同期して定期取得
+})();
+</script>
+</body>
+</html>
